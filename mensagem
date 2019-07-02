@@ -1,0 +1,126 @@
+<?php
+	session_start();
+	require_once "connect.php";
+?>
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+	<link rel="stylesheet" href="css/estilo.css"/>
+	<title></title>
+</head>
+<body class="corpo">
+	<?php
+		 if(!isset($receptores) && !isset($transmissores)){
+		 	$receptores     = array();
+		 	$transmissores  = array();
+		 }
+		 $user  	= $_SESSION['usr'];
+		 $sql 		= "SELECT * FROM conversas WHERE transmissor LIKE '$user' OR receptor LIKE '$user'";
+		 $result	= mysqli_query($connect,$sql);
+		 if(mysqli_num_rows($result) > 0){
+		 	echo "<table class='table'>
+		 			<tbody>
+		 			";
+		 	
+		 	while($row = mysqli_fetch_array($result)){
+		 		array_push($receptores,$row['receptor']);
+		 		array_push($transmissores,$row['transmissor']);	
+		 	}
+		 	$transmissores  = array_unique($transmissores);
+		 	if($receptores){
+		 		$receptores 	= array_unique($receptores);
+		 		foreach ($receptores as $key => $value) {
+		 			if($key <= count($transmissores) && $transmissores[$key] != $user)$transmiter = $transmissores[$key];
+		 			else $transmiter = $user;
+		 			$sql = "SELECT * FROM conversas WHERE transmissor LIKE '$user' AND receptor LIKE '$receptores[$key]' OR receptor LIKE '$user' AND transmissor LIKE 'transmiter' ORDER BY id DESC LIMIT 1";
+		 			$res = mysqli_query($connect,$sql);
+		 			if($l = mysqli_num_rows($res) > 0){
+		 				while($row = mysqli_fetch_array($res)){
+		 					$msg 		  = $row['mensagem'];
+		 					$receptor     = $row['receptor'];  
+		 					$msg 		  = base64_decode($msg);
+		 					$transmissor  = $row['transmissor'];
+		 					$msg 		  = trim($msg);
+		 					$value 		  = trim($value);
+		 					echo "
+							    <tr class='seleciona'>"; 
+							    if($receptor == $user)echo "<td scope='row' class='cnt'>$transmissor:</td>";
+							    else echo "<td scope='row' class='cnt'>$value:</td>";
+							    echo "<td class='msg'>
+							      	<div class='dropdown'>
+									  <button class='but dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>
+									      $msg
+									  </button>
+									  <div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>
+									    <a class='dropdown-item' id='apagar' href='#' value='value'>Apagar conversa</a>
+									  </div>
+									</div>
+							      </td>
+							 	 </tr>
+							 ";
+		 				}
+		 			}	
+		 		}
+		 		
+		 	}
+		 	 echo " </tbody>
+					</table>";				 	
+		}
+	?>
+	
+	
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+	<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+	<script>
+		$(document).on('click','.seleciona',function(e){
+			e.preventDefault();
+			let tr = $(this).closest('tr');
+    		let cnt = tr.find('td[class="cnt"]').text();
+    		cnt = cnt.replace(':',"");
+    		$.ajax({
+    			url:'cv.php',
+    			method:"POST",
+    			data:{
+    				cnt:cnt
+    			},
+    			async:true,
+    			success:function(data){
+    				if(data){
+    					window.parent.location = "principal.php";
+    				}
+    			}
+    			
+    			
+    		});
+
+
+		});
+	</script>
+	<script>
+		$(document).on('click','#apagar',function(){
+			let tr = $(this).closest('tr');
+    		let cnt = tr.find('td[class="cnt"]').text();
+    		cnt = cnt.replace(':',"");
+    		$.ajax({
+    			url:'delete-msg.php',
+    			method:"POST",
+    			data:{
+    				cnt:cnt
+    			},
+    			async:true,
+    			success:function(data){
+    				if(data == "ok"){
+    					window.location.reload();
+    				}
+    			}
+    		})
+		});		
+	</script>
+
+</body>
+</html>
